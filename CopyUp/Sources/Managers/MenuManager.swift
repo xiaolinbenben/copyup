@@ -113,9 +113,10 @@ private extension MenuManager {
             .store(in: &cancellables)
         snippetRepository.observeFolderDetails()
             .receive(on: mainQueue)
-            .sink { [weak self] folderDetails in
-                self?.snippetFolderDetails = folderDetails
-                self?.createCopyUpMenu()
+            .sink { [weak self] _ in
+                guard let self else { return }
+                snippetFolderDetails = snippetRepository.fetchFolderDetails()
+                createCopyUpMenu()
             }
             .store(in: &cancellables)
         // Menu icon
@@ -194,6 +195,9 @@ private extension MenuManager {
             tab: selectedTab,
             historyEntries: historyEntries(),
             favoriteEntries: favoriteEntries(),
+            showsClearHistoryButton: AppEnvironment.current.defaults.bool(forKey: Constants.UserDefaults.addClearHistoryMenuItem),
+            usesNumericShortcuts: AppEnvironment.current.defaults.bool(forKey: Constants.UserDefaults.addNumericKeyEquivalents),
+            numericShortcutsStartAtZero: AppEnvironment.current.defaults.bool(forKey: Constants.UserDefaults.menuItemsTitleStartWithZero),
             callbacks: menuCallbacks()
         )
         let menuItem = NSMenuItem()
@@ -347,6 +351,7 @@ private extension MenuManager {
             pasteboardHistoryRepository.deleteHistory(id: id)
         case .favorite(let id):
             snippetRepository.deleteSnippet(id)
+            snippetFolderDetails = snippetRepository.fetchFolderDetails()
         }
         refreshMenuPanel()
     }

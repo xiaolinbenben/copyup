@@ -47,7 +47,7 @@ final class CopyUpMenuPanelView: NSView {
     private enum Metrics {
         static var width: CGFloat {
             let screenWidth = screen?.visibleFrame.width ?? 640
-            return max(360, min(screenWidth - 80, 560))
+            return max(360, min(screenWidth - 80, 520))
         }
 
         static let headerHeight: CGFloat = 52
@@ -57,16 +57,8 @@ final class CopyUpMenuPanelView: NSView {
         static let contentBottomInset: CGFloat = 18
 
         static var maxListHeight: CGFloat {
-            max(220, min(760, maxPanelHeight - headerHeight))
-        }
-
-        private static var maxPanelHeight: CGFloat {
-            guard let visibleFrame = screen?.visibleFrame else { return 680 }
-            let mouseY = NSEvent.mouseLocation.y
-            let verticalPadding: CGFloat = 36
-            let spaceBelow = mouseY - visibleFrame.minY - verticalPadding
-            let spaceAbove = visibleFrame.maxY - mouseY - verticalPadding
-            return max(360, min(max(spaceAbove, spaceBelow), visibleFrame.height - verticalPadding * 2))
+            guard let visibleFrame = screen?.visibleFrame else { return 628 }
+            return max(220, min(760, visibleFrame.height - headerHeight - 72))
         }
 
         private static var screen: NSScreen? {
@@ -80,10 +72,15 @@ final class CopyUpMenuPanelView: NSView {
     private let emptyLabel = NSTextField(labelWithString: "")
     private var headerButtons = [NSButton]()
     private var rows = [CopyUpMenuRowView]()
+    private var hoverTrackingArea: NSTrackingArea?
+    private weak var hoveredRow: CopyUpMenuRowView?
 
     private var tab: CopyUpMenuTab
     private var historyEntries: [CopyUpMenuEntry]
     private var favoriteEntries: [CopyUpMenuEntry]
+    private let showsClearHistoryButton: Bool
+    private let usesNumericShortcuts: Bool
+    private let numericShortcutsStartAtZero: Bool
     private let callbacks: CopyUpMenuCallbacks
     private var contentHeight: CGFloat = 0
     private var scrollsToTopOnNextLayout = false
@@ -92,11 +89,17 @@ final class CopyUpMenuPanelView: NSView {
         tab: CopyUpMenuTab,
         historyEntries: [CopyUpMenuEntry],
         favoriteEntries: [CopyUpMenuEntry],
+        showsClearHistoryButton: Bool,
+        usesNumericShortcuts: Bool,
+        numericShortcutsStartAtZero: Bool,
         callbacks: CopyUpMenuCallbacks
     ) {
         self.tab = tab
         self.historyEntries = historyEntries
         self.favoriteEntries = favoriteEntries
+        self.showsClearHistoryButton = showsClearHistoryButton
+        self.usesNumericShortcuts = usesNumericShortcuts
+        self.numericShortcutsStartAtZero = numericShortcutsStartAtZero
         self.callbacks = callbacks
         super.init(frame: NSRect(x: 0, y: 0, width: Metrics.width, height: Metrics.headerHeight + 160))
         setup()
@@ -105,6 +108,26 @@ final class CopyUpMenuPanelView: NSView {
 
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+
+    override var acceptsFirstResponder: Bool { true }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        if window == nil {
+            setHoveredRow(nil)
+        } else {
+            window?.makeFirstResponder(self)
+        }
+    }
+
+    override func keyDown(with event: NSEvent) {
+        guard !handleNumericShortcut(event) else { return }
+        super.keyDown(with: event)
+    }
+
+    override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        handleNumericShortcut(event) || super.performKeyEquivalent(with: event)
     }
 
     override func layout() {
@@ -122,6 +145,34 @@ final class CopyUpMenuPanelView: NSView {
         scrollView.frame = NSRect(x: 0, y: 0, width: bounds.width, height: headerY)
         layoutRows()
         scrollToTopIfNeeded()
+    }
+
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        if let hoverTrackingArea {
+            removeTrackingArea(hoverTrackingArea)
+        }
+        let next = NSTrackingArea(
+            rect: .zero,
+            options: [.activeAlways, .inVisibleRect, .mouseEnteredAndExited, .mouseMoved],
+            owner: self,
+            userInfo: nil
+        )
+        addTrackingArea(next)
+        hoverTrackingArea = next
+    }
+
+    override func mouseMoved(with event: NSEvent) {
+        updateHoveredRow(at: event.locationInWindow)
+    }
+
+    override func mouseExited(with event: NSEvent) {
+        let point = convert(event.locationInWindow, from: nil)
+        guard !bounds.contains(point) else {
+            updateHoveredRow(at: event.locationInWindow)
+            return
+        }
+        setHoveredRow(nil)
     }
 
     func update(tab: CopyUpMenuTab, historyEntries: [CopyUpMenuEntry], favoriteEntries: [CopyUpMenuEntry]) {
@@ -146,11 +197,13 @@ private extension CopyUpMenuPanelView {
         addSubview(tabControl)
 
         headerButtons = [
-            button("trash", String(localized: "Clear History"), #selector(clearHistory)),
             button("square.and.pencil", String(localized: "Edit Snippets"), #selector(editFavorites)),
             button("gearshape", String(localized: "Preferences"), #selector(showPreferences)),
             button("power", String(localized: "Quit CopyUp"), #selector(quit))
         ]
+        if showsClearHistoryButton {
+            headerButtons.insert(button("trash", String(localized: "Clear History"), #selector(clearHistory)), at: 0)
+        }
         headerButtons.forEach(addSubview)
 
         scrollView.drawsBackground = false
@@ -179,13 +232,19 @@ private extension CopyUpMenuPanelView {
     }
 
     func reloadRows() {
+        setHoveredRow(nil)
         rows.forEach { $0.removeFromSuperview() }
         rows.removeAll()
         emptyLabel.removeFromSuperview()
 
         let rowWidth = frame.width - Metrics.inset * 2
-        rows = activeEntries.map { entry in
-            CopyUpMenuRowView(width: rowWidth, entry: entry, callbacks: callbacks)
+        rows = activeEntries.enumerated().map { index, entry in
+            CopyUpMenuRowView(
+                width: rowWidth,
+                entry: entry,
+                numericShortcut: numericShortcutLabel(for: index),
+                callbacks: callbacks
+            )
         }
 
         if rows.isEmpty {
@@ -204,6 +263,9 @@ private extension CopyUpMenuPanelView {
         contentView.frame = NSRect(x: 0, y: 0, width: Metrics.width, height: contentHeight)
         scrollsToTopOnNextLayout = true
         needsLayout = true
+        needsDisplay = true
+        contentView.needsDisplay = true
+        layoutSubtreeIfNeeded()
     }
 
     func layoutRows() {
@@ -231,6 +293,53 @@ private extension CopyUpMenuPanelView {
         scrollView.reflectScrolledClipView(scrollView.contentView)
     }
 
+    func handleNumericShortcut(_ event: NSEvent) -> Bool {
+        guard usesNumericShortcuts,
+              let index = numericShortcutIndex(for: event),
+              activeEntries.indices.contains(index) else {
+            return false
+        }
+        callbacks.selectEntry(activeEntries[index].kind)
+        return true
+    }
+
+    func numericShortcutLabel(for index: Int) -> String? {
+        guard let key = numericShortcutKey(for: index) else { return nil }
+        return "⌘\(key)"
+    }
+
+    func numericShortcutKey(for index: Int) -> String? {
+        guard usesNumericShortcuts && index >= 0 && index < 10 else { return nil }
+        let key = numericShortcutsStartAtZero ? index : index + 1
+        return "\(key == 10 ? 0 : key)"
+    }
+
+    func numericShortcutIndex(for event: NSEvent) -> Int? {
+        let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+        guard flags.contains(.command),
+              !flags.contains(.shift),
+              !flags.contains(.control),
+              !flags.contains(.option),
+              let character = event.charactersIgnoringModifiers?.first,
+              let number = Int(String(character)),
+              number >= 0 && number <= 9 else {
+            return nil
+        }
+        return numericShortcutsStartAtZero ? number : (number == 0 ? 9 : number - 1)
+    }
+
+    func updateHoveredRow(at windowLocation: NSPoint) {
+        let point = contentView.convert(windowLocation, from: nil)
+        setHoveredRow(rows.first { $0.frame.contains(point) })
+    }
+
+    func setHoveredRow(_ row: CopyUpMenuRowView?) {
+        guard hoveredRow !== row else { return }
+        hoveredRow?.setHover(false)
+        hoveredRow = row
+        hoveredRow?.setHover(true)
+    }
+
     @objc func clearHistory() { callbacks.clearHistory() }
     @objc func editFavorites() { callbacks.editFavorites() }
     @objc func showPreferences() { callbacks.showPreferences() }
@@ -239,87 +348,60 @@ private extension CopyUpMenuPanelView {
 
 final class CopyUpMenuTabControl: NSView {
     var selectedTab: CopyUpMenuTab = .history {
-        didSet { updateSelection() }
+        didSet { needsDisplay = true }
     }
     var onSelect: ((CopyUpMenuTab) -> Void)?
 
-    private let historyButton = NSButton(title: String(localized: "History"), target: nil, action: nil)
-    private let favoritesButton = NSButton(title: String(localized: "Snippet"), target: nil, action: nil)
-    private let underlineView = NSView()
+    private let historyTitle = String(localized: "History")
+    private let favoritesTitle = String(localized: "Snippet")
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
-        setup()
+        wantsLayer = true
+        layer?.backgroundColor = NSColor.clear.cgColor
     }
 
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
 
-    override func layout() {
-        super.layout()
-        let segmentWidth = bounds.width / 2
-        let buttonHeight = bounds.height - 4
-        historyButton.frame = NSRect(x: 0, y: 4, width: segmentWidth, height: buttonHeight)
-        favoritesButton.frame = NSRect(x: segmentWidth, y: 4, width: segmentWidth, height: buttonHeight)
+    override func mouseDown(with event: NSEvent) {
+        let point = convert(event.locationInWindow, from: nil)
+        guard bounds.contains(point) else { return }
+        select(point.x < bounds.midX ? .history : .favorites)
+    }
 
-        let selectedFrame = selectedTab == .history ? historyButton.frame : favoritesButton.frame
-        let underlineWidth: CGFloat = 20
-        underlineView.frame = NSRect(
-            x: selectedFrame.midX - underlineWidth / 2,
-            y: 0,
-            width: underlineWidth,
-            height: 2
+    override func draw(_ dirtyRect: NSRect) {
+        super.draw(dirtyRect)
+
+        let segmentWidth = bounds.width / 2
+        let paragraph = NSMutableParagraphStyle()
+        paragraph.alignment = .center
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: NSFont.systemFont(ofSize: 14, weight: .medium),
+            .foregroundColor: NSColor.labelColor,
+            .paragraphStyle: paragraph
+        ]
+
+        let labelHeight = bounds.height - 4
+        historyTitle.draw(in: NSRect(x: 0, y: 4, width: segmentWidth, height: labelHeight), withAttributes: attributes)
+        favoritesTitle.draw(
+            in: NSRect(x: segmentWidth, y: 4, width: segmentWidth, height: labelHeight),
+            withAttributes: attributes
         )
+
+        let selectedMidX = selectedTab == .history ? segmentWidth / 2 : segmentWidth + segmentWidth / 2
+        let underlineRect = NSRect(x: selectedMidX - 10, y: 0, width: 20, height: 2)
+        NSColor.labelColor.setFill()
+        NSBezierPath(roundedRect: underlineRect, xRadius: 1, yRadius: 1).fill()
     }
 }
 
 private extension CopyUpMenuTabControl {
-    func setup() {
-        wantsLayer = true
-        layer?.backgroundColor = NSColor.clear.cgColor
-
-        configure(historyButton, action: #selector(selectHistory))
-        configure(favoritesButton, action: #selector(selectFavorites))
-        underlineView.wantsLayer = true
-        underlineView.layer?.backgroundColor = NSColor.labelColor.cgColor
-        underlineView.layer?.cornerRadius = 1
-
-        addSubview(historyButton)
-        addSubview(favoritesButton)
-        addSubview(underlineView)
-        updateSelection()
-    }
-
-    func configure(_ button: NSButton, action: Selector) {
-        button.isBordered = false
-        button.font = .systemFont(ofSize: 14, weight: .medium)
-        button.contentTintColor = .labelColor
-        button.target = self
-        button.action = action
-        button.wantsLayer = true
-        button.layer?.backgroundColor = NSColor.clear.cgColor
-    }
-
-    func updateSelection() {
-        update(historyButton, isSelected: selectedTab == .history)
-        update(favoritesButton, isSelected: selectedTab == .favorites)
-        needsLayout = true
-    }
-
-    func update(_ button: NSButton, isSelected: Bool) {
-        button.contentTintColor = .labelColor
-        button.layer?.backgroundColor = NSColor.clear.cgColor
-    }
-
-    @objc func selectHistory() {
-        selectedTab = .history
-        onSelect?(.history)
-    }
-
-    @objc func selectFavorites() {
-        selectedTab = .favorites
-        onSelect?(.favorites)
+    func select(_ tab: CopyUpMenuTab) {
+        guard selectedTab != tab else { return }
+        selectedTab = tab
+        onSelect?(tab)
     }
 }
 
@@ -331,22 +413,26 @@ final class CopyUpMenuRowView: NSView {
         static let maxTextHeight: CGFloat = 178
         static let maxImageHeightRatio: CGFloat = 0.75
         static let buttonSize = NSSize(width: 34, height: 30)
+        static let pasteButtonSize = NSSize(width: 78, height: 30)
     }
 
     let preferredHeight: CGFloat
 
     private let entry: CopyUpMenuEntry
     private let callbacks: CopyUpMenuCallbacks
+    private let numericShortcut: String?
     private let textField = NSTextField(labelWithString: "")
     private let imageView = CopyUpAspectFillImageView()
+    private let pasteButton = NSButton()
     private let favoriteButton = NSButton()
     private let deleteButton = NSButton()
-    private var trackingArea: NSTrackingArea?
+    private var isHovering: Bool?
     private var favorited: Bool
 
-    init(width: CGFloat, entry: CopyUpMenuEntry, callbacks: CopyUpMenuCallbacks) {
+    init(width: CGFloat, entry: CopyUpMenuEntry, numericShortcut: String?, callbacks: CopyUpMenuCallbacks) {
         self.entry = entry
         self.callbacks = callbacks
+        self.numericShortcut = numericShortcut
         self.favorited = entry.isFavorited
         self.preferredHeight = Self.height(for: entry, width: width)
         super.init(frame: NSRect(x: 0, y: 0, width: width, height: preferredHeight))
@@ -365,55 +451,40 @@ final class CopyUpMenuRowView: NSView {
             imageView.frame = bounds
         }
 
-        deleteButton.frame = NSRect(
-            x: bounds.width - Metrics.buttonSize.width - 14,
-            y: bounds.height - Metrics.buttonSize.height - 12,
-            width: Metrics.buttonSize.width,
-            height: Metrics.buttonSize.height
-        )
-        favoriteButton.frame = NSRect(
-            x: deleteButton.frame.minX - Metrics.buttonSize.width - 8,
-            y: deleteButton.frame.minY,
-            width: Metrics.buttonSize.width,
-            height: Metrics.buttonSize.height
-        )
-    }
+        let buttonY = bounds.height - Metrics.buttonSize.height - 12
+        var buttonRight = bounds.width - 14
 
-    override func updateTrackingAreas() {
-        super.updateTrackingAreas()
-        if let trackingArea {
-            removeTrackingArea(trackingArea)
-        }
-        let next = NSTrackingArea(
-            rect: .zero,
-            options: [.activeAlways, .inVisibleRect, .mouseEnteredAndExited, .mouseMoved],
-            owner: self,
-            userInfo: nil
+        deleteButton.frame = NSRect(
+            x: buttonRight - Metrics.buttonSize.width,
+            y: buttonY,
+            width: Metrics.buttonSize.width,
+            height: Metrics.buttonSize.height
         )
-        addTrackingArea(next)
-        trackingArea = next
+        buttonRight = deleteButton.frame.minX - 8
+
+        if entry.canFavorite {
+            favoriteButton.frame = NSRect(
+                x: buttonRight - Metrics.buttonSize.width,
+                y: buttonY,
+                width: Metrics.buttonSize.width,
+                height: Metrics.buttonSize.height
+            )
+            buttonRight = favoriteButton.frame.minX - 8
+        }
+
+        if numericShortcut != nil {
+            pasteButton.frame = NSRect(
+                x: buttonRight - Metrics.pasteButtonSize.width,
+                y: buttonY,
+                width: Metrics.pasteButtonSize.width,
+                height: Metrics.pasteButtonSize.height
+            )
+        }
     }
 
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
         if window == nil { setHover(false) }
-    }
-
-    override func mouseEntered(with event: NSEvent) {
-        setHover(true)
-    }
-
-    override func mouseMoved(with event: NSEvent) {
-        setHover(true)
-    }
-
-    override func mouseExited(with event: NSEvent) {
-        let point = convert(event.locationInWindow, from: nil)
-        guard !bounds.contains(point) else {
-            setHover(true)
-            return
-        }
-        setHover(false)
     }
 
     override func mouseDown(with event: NSEvent) {
@@ -444,6 +515,8 @@ private extension CopyUpMenuRowView {
 
         configure(deleteButton, symbol: "trash", action: #selector(deleteEntry))
         configure(favoriteButton, symbol: favorited ? "star.fill" : "star", action: #selector(favoriteEntry))
+        configurePasteButton()
+        addSubview(pasteButton)
         addSubview(favoriteButton)
         addSubview(deleteButton)
         setHover(false)
@@ -468,12 +541,33 @@ private extension CopyUpMenuRowView {
         button.layer?.cornerRadius = 8
     }
 
+    func configurePasteButton() {
+        let shortcut = numericShortcut ?? ""
+        pasteButton.title = "\(String(localized: "Paste")) \(shortcut)"
+        pasteButton.isBordered = false
+        pasteButton.font = .systemFont(ofSize: 13, weight: .semibold)
+        pasteButton.alignment = .center
+        pasteButton.target = self
+        pasteButton.action = #selector(pasteEntry)
+        pasteButton.wantsLayer = true
+        pasteButton.layer?.backgroundColor = NSColor.windowBackgroundColor.withAlphaComponent(0.96).cgColor
+        pasteButton.layer?.cornerRadius = 8
+        pasteButton.toolTip = "\(String(localized: "Paste")) \(shortcut)"
+    }
+
     func setHover(_ hovering: Bool) {
+        guard isHovering != hovering else { return }
+        isHovering = hovering
         layer?.backgroundColor = entry.image == nil && hovering
             ? NSColor.controlAccentColor.withAlphaComponent(0.14).cgColor
             : NSColor.clear.cgColor
+        pasteButton.isHidden = !hovering || numericShortcut == nil
         deleteButton.isHidden = !hovering
         favoriteButton.isHidden = !hovering || !entry.canFavorite
+    }
+
+    @objc func pasteEntry() {
+        callbacks.selectEntry(entry.kind)
     }
 
     @objc func deleteEntry() {
