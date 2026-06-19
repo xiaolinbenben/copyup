@@ -82,6 +82,7 @@ final class CopyUpMenuPanelView: NSView {
     private let usesNumericShortcuts: Bool
     private let numericShortcutsStartAtZero: Bool
     private let callbacks: CopyUpMenuCallbacks
+    private let listViewportHeight: CGFloat
     private var contentHeight: CGFloat = 0
     private var scrollsToTopOnNextLayout = false
 
@@ -101,7 +102,8 @@ final class CopyUpMenuPanelView: NSView {
         self.usesNumericShortcuts = usesNumericShortcuts
         self.numericShortcutsStartAtZero = numericShortcutsStartAtZero
         self.callbacks = callbacks
-        super.init(frame: NSRect(x: 0, y: 0, width: Metrics.width, height: Metrics.headerHeight + 160))
+        self.listViewportHeight = Metrics.maxListHeight
+        super.init(frame: NSRect(x: 0, y: 0, width: Metrics.width, height: Metrics.headerHeight + listViewportHeight))
         setup()
         reloadRows()
     }
@@ -259,8 +261,8 @@ private extension CopyUpMenuPanelView {
                 + Metrics.contentBottomInset
         }
 
-        frame.size = NSSize(width: Metrics.width, height: Metrics.headerHeight + min(contentHeight, Metrics.maxListHeight))
-        contentView.frame = NSRect(x: 0, y: 0, width: Metrics.width, height: contentHeight)
+        frame.size = NSSize(width: Metrics.width, height: Metrics.headerHeight + listViewportHeight)
+        contentView.frame = NSRect(x: 0, y: 0, width: Metrics.width, height: documentHeight)
         scrollsToTopOnNextLayout = true
         needsLayout = true
         needsDisplay = true
@@ -268,14 +270,18 @@ private extension CopyUpMenuPanelView {
         layoutSubtreeIfNeeded()
     }
 
+    var documentHeight: CGFloat {
+        max(contentHeight, listViewportHeight)
+    }
+
     func layoutRows() {
-        contentView.frame = NSRect(x: 0, y: 0, width: bounds.width, height: contentHeight)
+        contentView.frame = NSRect(x: 0, y: 0, width: bounds.width, height: documentHeight)
         guard !rows.isEmpty else {
-            emptyLabel.frame = NSRect(x: Metrics.inset, y: contentHeight - 86, width: bounds.width - Metrics.inset * 2, height: 36)
+            emptyLabel.frame = NSRect(x: Metrics.inset, y: documentHeight - 86, width: bounds.width - Metrics.inset * 2, height: 36)
             return
         }
 
-        var rowY = contentHeight - Metrics.contentTopInset
+        var rowY = documentHeight - Metrics.contentTopInset
         let rowWidth = bounds.width - Metrics.inset * 2
         rows.forEach { row in
             rowY -= row.preferredHeight
@@ -288,7 +294,7 @@ private extension CopyUpMenuPanelView {
         guard scrollsToTopOnNextLayout else { return }
         scrollsToTopOnNextLayout = false
         let visibleHeight = scrollView.contentView.bounds.height
-        let topY = max(0, contentHeight - visibleHeight)
+        let topY = max(0, documentHeight - visibleHeight)
         scrollView.contentView.scroll(to: NSPoint(x: 0, y: topY))
         scrollView.reflectScrolledClipView(scrollView.contentView)
     }
