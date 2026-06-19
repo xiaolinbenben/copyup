@@ -1,0 +1,13 @@
+// 
+//  CopyUp.xcconfig
+//
+//  CopyUp
+//  GitHub: https://github.com/xiaolinbenben/copyup
+//  HP: https://copyup.beisi.tech
+// 
+//  Created by Shunsuke Furubayashi on 2026/05/27.
+// 
+//  Copyright © 2015-2026 Clipy Project.
+//
+
+#include "Configurations/CodeSigning.xcconfig"
