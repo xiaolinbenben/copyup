@@ -18,15 +18,12 @@ import Magnet
 final class HotKeyService: NSObject {
     // MARK: - Properties
     static var defaultKeyCombos: [String: Any] = {
-        // MainMenu:    ⌘ + Shift + V
-        // HistoryMenu: ⌘ + Control + V
-        // SnipeetMenu: ⌘ + Shift B
-        return [Constants.Menu.clip: ["keyCode": 9, "modifiers": 768],
-                Constants.Menu.history: ["keyCode": 9, "modifiers": 4352],
-                Constants.Menu.snippet: ["keyCode": 11, "modifiers": 768]]
+        // HistoryMenu: Control + V
+        // SnippetMenu: Control + B
+        return [Constants.Menu.history: ["keyCode": 9, "modifiers": 4096],
+                Constants.Menu.snippet: ["keyCode": 11, "modifiers": 4096]]
     }()
 
-    fileprivate(set) var mainKeyCombo: KeyCombo?
     fileprivate(set) var historyKeyCombo: KeyCombo?
     fileprivate(set) var snippetKeyCombo: KeyCombo?
     fileprivate(set) var clearHistoryKeyCombo: KeyCombo?
@@ -67,8 +64,7 @@ extension HotKeyService {
         // Snippet hotkey
         setupSnippetHotKeys()
 
-        // Main menu
-        change(with: .main, keyCombo: savedKeyCombo(forKey: Constants.HotKey.mainKeyCombo))
+        disableMainHotKey()
         // History menu
         change(with: .history, keyCombo: savedKeyCombo(forKey: Constants.HotKey.historyKeyCombo))
         // Snippet menu
@@ -80,7 +76,8 @@ extension HotKeyService {
     func change(with type: MenuType, keyCombo: KeyCombo?) {
         switch type {
         case .main:
-            mainKeyCombo = keyCombo
+            disableMainHotKey()
+            return
         case .history:
             historyKeyCombo = keyCombo
         case .snippet:
@@ -105,6 +102,12 @@ extension HotKeyService {
         guard let data = AppEnvironment.current.defaults.object(forKey: key) as? Data else { return nil }
         guard let keyCombo = NSKeyedUnarchiver.unarchiveObject(with: data) as? KeyCombo else { return nil }
         return keyCombo
+    }
+
+    private func disableMainHotKey() {
+        HotKeyCenter.shared.unregisterHotKey(with: MenuType.main.rawValue)
+        AppEnvironment.current.defaults.removeObject(forKey: Constants.HotKey.mainKeyCombo)
+        AppEnvironment.current.defaults.synchronize()
     }
 }
 
@@ -135,12 +138,6 @@ private extension HotKeyService {
     func migrationKeyCombos() {
         guard let keyCombos = AppEnvironment.current.defaults.object(forKey: Constants.UserDefaults.hotKeys) as? [String: Any] else { return }
 
-        // Main menu
-        if let (keyCode, modifiers) = parse(with: keyCombos, forKey: Constants.Menu.clip) {
-            if let keyCombo = KeyCombo(QWERTYKeyCode: keyCode, carbonModifiers: modifiers) {
-                AppEnvironment.current.defaults.set(keyCombo.archive(), forKey: Constants.HotKey.mainKeyCombo)
-            }
-        }
         // History menu
         if let (keyCode, modifiers) = parse(with: keyCombos, forKey: Constants.Menu.history) {
             if let keyCombo = KeyCombo(QWERTYKeyCode: keyCode, carbonModifiers: modifiers) {

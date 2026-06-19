@@ -244,37 +244,37 @@
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Editar Snippets..."
+            "value" : "Edit Favorites..."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Snippets bearbeiten..."
+            "value" : "Edit Favorites..."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Edit Snippets..."
+            "value" : "Edit Favorites..."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Modifica snippet..."
+            "value" : "Edit Favorites..."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "スニペットを編集..."
+            "value" : "Edit Favorites..."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "编辑片断..."
+            "value" : "编辑收藏..."
           }
         }
       }
@@ -542,31 +542,31 @@
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Por favor, preencha o conteúdo do snippet"
+            "value" : "Please fill in the contents of the favorite"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bitte geben Sie den Inhalt des Snippets ein"
+            "value" : "Please fill in the contents of the favorite"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Si prega di compilare il contenuto dello snippet"
+            "value" : "Please fill in the contents of the favorite"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "スニペットの内容を記入してください"
+            "value" : "Please fill in the contents of the favorite"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "请填写代码段的内容"
+            "value" : "请填写收藏内容"
           }
         }
       }
@@ -691,31 +691,31 @@
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Snippet"
+            "value" : "Favorite"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Snippet"
+            "value" : "Favorite"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Snippet"
+            "value" : "Favorite"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "スニペット"
+            "value" : "Favorite"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "片断"
+            "value" : "收藏"
           }
         }
       }

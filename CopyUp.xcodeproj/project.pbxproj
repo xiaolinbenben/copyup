@@ -50,6 +50,7 @@
 		C5D76DAB2FBA9D2E0083839F /* SwiftHEXColors in Frameworks */ = {isa = PBXBuildFile; productRef = C5D76DAA2FBA9D2E0083839F /* SwiftHEXColors */; };
 		C5E3D0512FB43570005D632A /* Screeen in Frameworks */ = {isa = PBXBuildFile; productRef = C5E3D0502FB43570005D632A /* Screeen */; };
 		C5F1B7331FF74A2D00D2DA83 /* NSPasteboard+Deprecated.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5F1B7321FF74A2D00D2DA83 /* NSPasteboard+Deprecated.swift */; };
+		C5C0A1012FDDBA0000C0DE01 /* CopyUpMenuViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5C0A1002FDDBA0000C0DE01 /* CopyUpMenuViews.swift */; };
 		FA08EDF81D1FED7D000D1D13 /* HotKeyServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA08EDF71D1FED7D000D1D13 /* HotKeyServiceTests.swift */; };
 		FA0D5CE81DDCC61600AC9052 /* ClipService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0D5CE71DDCC61600AC9052 /* ClipService.swift */; };
 		FA1189331E4CD58C00244F12 /* ExcludeAppService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA1189321E4CD58C00244F12 /* ExcludeAppService.swift */; };
@@ -202,6 +203,7 @@
 		FA1DB4AE1DDCB452007F95C8 /* NSMenuItem+Initialize.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "NSMenuItem+Initialize.swift"; sourceTree = "<group>"; };
 		FA1DB4AF1DDCB452007F95C8 /* NSUserDefaults+ArchiveData.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "NSUserDefaults+ArchiveData.swift"; sourceTree = "<group>"; };
 		FA1DB4B21DDCB452007F95C8 /* String+Substring.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "String+Substring.swift"; sourceTree = "<group>"; };
+		C5C0A1002FDDBA0000C0DE01 /* CopyUpMenuViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CopyUpMenuViews.swift; sourceTree = "<group>"; };
 		FA1DB4C31DDCB460007F95C8 /* MenuManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MenuManager.swift; sourceTree = "<group>"; };
 		FA1DB4CC1DDCB479007F95C8 /* CPYAppInfo.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CPYAppInfo.swift; sourceTree = "<group>"; };
 		FA1DB4D91DDCB49C007F95C8 /* CPYUtilities.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CPYUtilities.swift; sourceTree = "<group>"; };
@@ -494,6 +496,7 @@
 		FA1DB4BE1DDCB460007F95C8 /* Managers */ = {
 			isa = PBXGroup;
 			children = (
+				C5C0A1002FDDBA0000C0DE01 /* CopyUpMenuViews.swift */,
 				FA1DB4C31DDCB460007F95C8 /* MenuManager.swift */,
 			);
 			path = Managers;
@@ -869,6 +872,7 @@
 				FA1DB4B91DDCB452007F95C8 /* NSMenuItem+Initialize.swift in Sources */,
 				FA0D5CE81DDCC61600AC9052 /* ClipService.swift in Sources */,
 				FA1DB4C91DDCB460007F95C8 /* MenuManager.swift in Sources */,
+				C5C0A1012FDDBA0000C0DE01 /* CopyUpMenuViews.swift in Sources */,
 				FA1DB4BD1DDCB452007F95C8 /* String+Substring.swift in Sources */,
 				FA1189331E4CD58C00244F12 /* ExcludeAppService.swift in Sources */,
 				FA1DB4E91DDCB49C007F95C8 /* CPYSplitView.swift in Sources */,

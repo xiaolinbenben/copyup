@@ -23,6 +23,7 @@ final class MenuManager: NSObject {
     private var clipMenu: NSMenu?
     private var historyMenu: NSMenu?
     private var snippetMenu: NSMenu?
+    private weak var menuPanelView: CopyUpMenuPanelView?
     // StatusMenu
     private lazy var statusBarItem: NSStatusItem = {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -47,6 +48,7 @@ final class MenuManager: NSObject {
     private var mainQueue
     private var cancellables: Set<AnyCancellable> = []
     private var snippetFolderDetails = [SnippetFolderDetail]()
+    private var selectedTab: CopyUpMenuTab = .history
 
     // MARK: - Enum Values
     enum StatusType: Int {
@@ -71,16 +73,16 @@ final class MenuManager: NSObject {
 // MARK: - Popup Menu
 extension MenuManager {
     func popUpMenu(_ type: MenuType) {
-        let menu: NSMenu?
         switch type {
         case .main:
-            menu = clipMenu
+            selectedTab = .history
         case .history:
-            menu = historyMenu
+            selectedTab = .history
         case .snippet:
-            menu = snippetMenu
+            selectedTab = .favorites
         }
-        menu?.popUp(positioning: nil, at: NSEvent.mouseLocation, in: nil)
+        let panelView = createCopyUpMenu()
+        clipMenu?.popUp(positioning: nil, at: popupLocation(for: panelView.frame.size), in: nil)
     }
 
     func popUpSnippetFolder(_ folderDetail: SnippetFolderDetail) {
@@ -181,29 +183,245 @@ private extension MenuManager {
 
 // MARK: - Menus
 private extension MenuManager {
-     func createCopyUpMenu() {
+    @discardableResult
+    func createCopyUpMenu() -> CopyUpMenuPanelView {
         clipMenu = NSMenu(title: Constants.Application.name)
-        historyMenu = NSMenu(title: Constants.Menu.history)
-        snippetMenu = NSMenu(title: Constants.Menu.snippet)
+        clipMenu?.delegate = self
+        historyMenu = clipMenu
+        snippetMenu = clipMenu
 
-        addHistoryItems(clipMenu!)
-        addHistoryItems(historyMenu!)
-
-        addSnippetItems(clipMenu!, separateMenu: true, details: snippetFolderDetails)
-        addSnippetItems(snippetMenu!, separateMenu: false, details: snippetFolderDetails)
-
-        clipMenu?.addItem(NSMenuItem.separator())
-
-        if AppEnvironment.current.defaults.bool(forKey: Constants.UserDefaults.addClearHistoryMenuItem) {
-            clipMenu?.addItem(NSMenuItem(title: String(localized: "Clear History"), action: #selector(AppDelegate.clearAllHistory)))
-        }
-
-        clipMenu?.addItem(NSMenuItem(title: String(localized: "Edit Snippets"), action: #selector(AppDelegate.showSnippetEditorWindow)))
-        clipMenu?.addItem(NSMenuItem(title: String(localized: "Preferences"), action: #selector(AppDelegate.showPreferenceWindow)))
-        clipMenu?.addItem(NSMenuItem.separator())
-        clipMenu?.addItem(NSMenuItem(title: String(localized: "Quit CopyUp"), action: #selector(AppDelegate.terminate)))
+        let panelView = CopyUpMenuPanelView(
+            tab: selectedTab,
+            historyEntries: historyEntries(),
+            favoriteEntries: favoriteEntries(),
+            callbacks: menuCallbacks()
+        )
+        let menuItem = NSMenuItem()
+        menuItem.view = panelView
+        clipMenu?.addItem(menuItem)
+        menuPanelView = panelView
 
         statusBarItem.menu = clipMenu
+        return panelView
+    }
+
+    func popupLocation(for panelSize: NSSize) -> NSPoint {
+        let mouseLocation = NSEvent.mouseLocation
+        guard let visibleFrame = NSScreen.screens
+            .first(where: { $0.frame.contains(mouseLocation) })?
+            .visibleFrame ?? NSScreen.main?.visibleFrame else {
+            return mouseLocation
+        }
+
+        let padding: CGFloat = 12
+        let spaceAbove = visibleFrame.maxY - mouseLocation.y
+        let spaceBelow = mouseLocation.y - visibleFrame.minY
+        let popupX = min(max(mouseLocation.x, visibleFrame.minX + padding), visibleFrame.maxX - panelSize.width - padding)
+        let popupY: CGFloat
+        if spaceAbove >= spaceBelow {
+            popupY = min(mouseLocation.y + panelSize.height, visibleFrame.maxY - padding)
+        } else {
+            popupY = max(mouseLocation.y, visibleFrame.minY + panelSize.height + padding)
+        }
+        return NSPoint(x: popupX, y: popupY)
+    }
+
+    func refreshMenuPanel() {
+        menuPanelView?.update(
+            tab: selectedTab,
+            historyEntries: historyEntries(),
+            favoriteEntries: favoriteEntries()
+        )
+    }
+
+    func menuCallbacks() -> CopyUpMenuCallbacks {
+        CopyUpMenuCallbacks(
+            selectTab: { [weak self] tab in
+                self?.selectedTab = tab
+                self?.refreshMenuPanel()
+            },
+            selectEntry: { [weak self] kind in
+                self?.selectEntry(kind)
+            },
+            deleteEntry: { [weak self] kind in
+                self?.deleteEntry(kind)
+            },
+            favoriteEntry: { [weak self] kind in
+                self?.favoriteEntry(kind) ?? false
+            },
+            clearHistory: { [weak self] in
+                self?.clipMenu?.cancelTracking()
+                (NSApp.delegate as? AppDelegate)?.clearAllHistory()
+            },
+            editFavorites: { [weak self] in
+                self?.clipMenu?.cancelTracking()
+                (NSApp.delegate as? AppDelegate)?.showSnippetEditorWindow()
+            },
+            showPreferences: { [weak self] in
+                self?.clipMenu?.cancelTracking()
+                (NSApp.delegate as? AppDelegate)?.showPreferenceWindow()
+            },
+            quit: { [weak self] in
+                self?.clipMenu?.cancelTracking()
+                (NSApp.delegate as? AppDelegate)?.terminate()
+            }
+        )
+    }
+
+    func historyEntries() -> [CopyUpMenuEntry] {
+        let maxHistory = AppEnvironment.current.defaults.integer(forKey: Constants.UserDefaults.maxHistorySize)
+        let ascending = !AppEnvironment.current.defaults.bool(forKey: Constants.UserDefaults.reorderClipsAfterPasting)
+        let showsNumber = AppEnvironment.current.defaults.bool(forKey: Constants.UserDefaults.menuItemsAreMarkedWithNumbers)
+        let firstIndex = firstIndexOfMenuItems()
+        let favoriteContents = Set(snippetFolderDetails.flatMap(\.snippets).map(\.content))
+
+        return pasteboardHistoryRepository.fetchHistoryDetails(
+            ascending: ascending,
+            includesThumbnailAsset: false,
+            limit: maxHistory
+        )
+        .enumerated()
+        .map { index, detail in
+            let content = pasteboardHistoryRepository.fetchContent(id: detail.history.id)
+            let image: NSImage?
+            if let content {
+                image = self.image(from: content)
+            } else {
+                image = nil
+            }
+            let stringValue = content?.stringValue.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            return CopyUpMenuEntry(
+                kind: .history(detail.history.id),
+                title: image == nil ? title(for: detail.history, content: content) : "",
+                image: image,
+                listNumber: firstIndex + index,
+                showsNumber: showsNumber,
+                canFavorite: image == nil && !stringValue.isEmpty,
+                isFavorited: favoriteContents.contains(stringValue)
+            )
+        }
+    }
+
+    func favoriteEntries() -> [CopyUpMenuEntry] {
+        let showsNumber = AppEnvironment.current.defaults.bool(forKey: Constants.UserDefaults.menuItemsAreMarkedWithNumbers)
+        let firstIndex = firstIndexOfMenuItems()
+        return snippetFolderDetails
+            .filter { $0.folder.isEnabled }
+            .flatMap { $0.snippets.filter(\.isEnabled) }
+            .enumerated()
+            .map { index, snippet in
+                CopyUpMenuEntry(
+                    kind: .favorite(snippet.id),
+                    title: trimTitle(snippet.title),
+                    image: nil,
+                    listNumber: firstIndex + index,
+                    showsNumber: showsNumber,
+                    canFavorite: false,
+                    isFavorited: true
+                )
+            }
+    }
+
+    func selectEntry(_ kind: CopyUpMenuEntry.Kind) {
+        clipMenu?.cancelTracking()
+        switch kind {
+        case .history(let id):
+            guard let content = pasteboardHistoryRepository.fetchContent(id: id) else {
+                NSSound.beep()
+                return
+            }
+            AppEnvironment.current.pasteService.paste(id: id, content: content)
+        case .favorite(let id):
+            guard let snippet = snippetRepository.fetchSnippet(id: id) else {
+                NSSound.beep()
+                return
+            }
+            AppEnvironment.current.pasteService.copyToPasteboard(with: snippet.content)
+            AppEnvironment.current.pasteService.paste()
+        }
+    }
+
+    func deleteEntry(_ kind: CopyUpMenuEntry.Kind) {
+        switch kind {
+        case .history(let id):
+            pasteboardHistoryRepository.deleteHistory(id: id)
+        case .favorite(let id):
+            snippetRepository.deleteSnippet(id)
+        }
+        refreshMenuPanel()
+    }
+
+    func favoriteEntry(_ kind: CopyUpMenuEntry.Kind) -> Bool {
+        guard case .history(let id) = kind,
+              let content = pasteboardHistoryRepository.fetchContent(id: id) else {
+            NSSound.beep()
+            return false
+        }
+        let favoriteContent = content.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !favoriteContent.isEmpty, image(from: content) == nil else {
+            NSSound.beep()
+            return false
+        }
+        if snippetFolderDetails.flatMap(\.snippets).contains(where: { $0.content == favoriteContent }) {
+            return true
+        }
+        guard let folder = favoriteFolder(),
+              let snippet = snippetRepository.insertSnippet(to: folder.id) else {
+            NSSound.beep()
+            return false
+        }
+        snippetRepository.updateSnippetTitle(snippet.id, title: favoriteTitle(from: favoriteContent))
+        snippetRepository.updateSnippetContent(snippet.id, content: favoriteContent)
+        snippetFolderDetails = snippetRepository.fetchFolderDetails()
+        refreshMenuPanel()
+        return true
+    }
+
+    func favoriteFolder() -> SnippetFolder? {
+        if let folder = snippetFolderDetails.first(where: { $0.folder.isEnabled })?.folder {
+            return folder
+        }
+        guard let folder = snippetRepository.insertFolder() else { return nil }
+        snippetRepository.updateFolderTitle(folder.id, title: String(localized: "Snippet"))
+        return folder
+    }
+
+    func favoriteTitle(from content: String) -> String {
+        let title = content
+            .split(whereSeparator: \.isNewline)
+            .first
+            .map(String.init)?
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !title.isEmpty else { return String(localized: "Snippet") }
+        if title.utf16.count <= 50 { return title }
+        return (title as NSString).substring(to: 47) + shortenSymbol
+    }
+
+    func title(for history: PasteboardHistory, content: PasteboardContent?) -> String {
+        let title = history.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !title.isEmpty { return trimTitle(title) }
+        if let content,
+           let fileName = content.assets
+            .first(where: { $0.type == .fileURL })
+            .flatMap({ URL(dataRepresentation: $0.data, relativeTo: nil)?.lastPathComponent }),
+           !fileName.isEmpty {
+            return trimTitle(fileName)
+        }
+        return "File"
+    }
+
+    func image(from content: PasteboardContent) -> NSImage? {
+        let imageURL = content.assets
+            .filter { $0.type == .fileURL }
+            .compactMap { URL(dataRepresentation: $0.data, relativeTo: nil) }
+            .first(where: { ["jpg", "jpeg", "png", "bmp", "tiff"].contains($0.pathExtension.lowercased()) })
+        if let imageURL {
+            return NSImage(contentsOf: imageURL)
+        }
+        if let data = content.assets.first(where: { [.png, .tiff, .deprecatedTIFF].contains($0.type) })?.data {
+            return NSImage(data: data)
+        }
+        return nil
     }
 
     func menuItemTitle(_ title: String, listNumber: NSInteger, isMarkWithNumber: Bool) -> String {
@@ -443,5 +661,13 @@ private extension MenuManager {
 private extension MenuManager {
     func firstIndexOfMenuItems() -> NSInteger {
         return AppEnvironment.current.defaults.bool(forKey: Constants.UserDefaults.menuItemsTitleStartWithZero) ? 0 : 1
+    }
+}
+
+extension MenuManager: NSMenuDelegate {
+    func menuDidClose(_ menu: NSMenu) {
+        if menu === clipMenu {
+            selectedTab = .history
+        }
     }
 }
