@@ -1,0 +1,4 @@
+interface:
+  display_name: "CopyUp 发布打包"
+  short_description: "打包签名公证 CopyUp 测试 DMG"
+  default_prompt: "Use $copyup-release to build a signed and notarized CopyUp DMG for Apple Silicon testing."
