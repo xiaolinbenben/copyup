@@ -25,8 +25,12 @@ jobs:
           CODE_SIGN_IDENTITY=- \
           CODE_SIGNING_REQUIRED=NO \
           CODE_SIGNING_ALLOWED=NO \
-          -scheme Clipy \
-          -project Clipy.xcodeproj \
+          ARCHS=arm64 \
+          EXCLUDED_ARCHS=x86_64 \
+          ONLY_ACTIVE_ARCH=NO \
+          -scheme CopyUp \
+          -project CopyUp.xcodeproj \
+          -destination "platform=macOS,arch=arm64" \
           -clonedSourcePackagesDirPath "$GITHUB_WORKSPACE/.spm-cache/SourcePackages" \
           -packageCachePath "$GITHUB_WORKSPACE/.spm-cache/PackageCache" \
           -skipPackagePluginValidation \
@@ -40,10 +44,12 @@ jobs:
           CODE_SIGNING_REQUIRED=NO \
           CODE_SIGNING_ALLOWED=NO \
           ARCHS=arm64 \
+          EXCLUDED_ARCHS=x86_64 \
           ONLY_ACTIVE_ARCH=NO \
-          -scheme Clipy \
-          -project Clipy.xcodeproj \
+          -scheme CopyUp \
+          -project CopyUp.xcodeproj \
           -configuration Release \
+          -destination "platform=macOS,arch=arm64" \
           -derivedDataPath "$GITHUB_WORKSPACE/build" \
           -clonedSourcePackagesDirPath "$GITHUB_WORKSPACE/.spm-cache/SourcePackages" \
           -packageCachePath "$GITHUB_WORKSPACE/.spm-cache/PackageCache" \
@@ -51,5 +57,9 @@ jobs:
           -skipMacroValidation \
           clean build
 
-        binary="$GITHUB_WORKSPACE/build/Build/Products/Release/Clipy.app/Contents/MacOS/Clipy"
+        binary="$GITHUB_WORKSPACE/build/Build/Products/Release/CopyUp.app/Contents/MacOS/CopyUp"
         lipo "$binary" -verify_arch arm64
+        if lipo "$binary" -verify_arch x86_64; then
+          echo "Intel slice is not allowed"
+          exit 1
+        fi

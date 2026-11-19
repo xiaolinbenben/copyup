@@ -10,6 +10,7 @@ CopyUp is a clipboard manager for macOS.
 
 ## Requirements
 
+- Apple Silicon Mac
 - macOS 13 Ventura or later
 - Xcode 26.5 or later
 

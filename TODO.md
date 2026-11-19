@@ -6,20 +6,20 @@
 - [ ] 核对中文和英文用户可见文案。
 - [ ] 核心功能稳定后，统一处理 App 图标、隐私政策和官网发布页。
 
-## 免费版 / Pro 版
+## 免费版 / App Store 版
 
-- [ ] App Store 上架为免费 App，Pro 通过一次性 IAP 解锁，不做第二个独立 App。
-- [ ] 免费版剪贴板历史最多保存 5 条。
-- [ ] 免费版暂不限制收藏数量，避免第一版规则过复杂。
-- [ ] Pro 版历史数量叫“不限制常规使用”，技术上设置高上限，例如 500 或 1000。
-- [ ] 高级搜索功能暂不实现，保留为后续 Pro 候选能力。
-- [ ] 后续高级功能统一放入 Pro，但保持工具简单，不堆叠无关功能。
+- [ ] 官网版把剪贴板历史保存和展示上限固定为 5 条，且不提供购买或解锁。
+- [ ] 官网版不限制收藏数量。
+- [ ] App Store 版作为付费完整版，历史上限继续使用原有偏好设置。
+- [ ] 高级搜索功能暂不实现。
+- [ ] 后续高级功能只进入 App Store 版，不回填到官网免费版。
 
 ## 发行
 
-- [ ] 准备 Mac App Store 发行配置：App Sandbox、Apple Distribution 签名、App Store Connect 上传流程。
-- [ ] 移除 Sparkle 更新能力；后续正式更新只走 Mac App Store。
-- [ ] 暂不做官网分发；DMG 仅作为本地或朋友测试构建，不作为正式渠道。
+- [ ] 准备 Mac App Store 发行配置：独立 bundle id、App Sandbox、Apple Distribution 签名、App Store Connect 上传。
+- [ ] 确认 App Store 版在沙盒内仍能记录剪贴板，并通过辅助功能粘贴。
+- [ ] Sparkle 只保留在官网版。
+- [ ] 官网版继续使用 Developer ID、公证和 Sparkle 分发。
 
 ## 后续决策
 

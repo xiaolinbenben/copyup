@@ -5,7 +5,7 @@
 ## 产品定位
 
 - CopyUp 是基于 Clipy 的 macOS 菜单栏剪贴板工具，核心目标是提升高频复制、查找、粘贴的效率。
-- 当前阶段优先服务个人自用和快速迭代，核心体验稳定后再规划正式发行和商业化。
+- 商业化按官网免费版和 Mac App Store 付费版执行；功能实现仍优先保证复制、查找和粘贴体验。
 - CopyUp 保留原项目 MIT 许可证和版权归属，不把原项目法律归属改写成 CopyUp 自有来源。
 
 ## 工程策略
@@ -26,7 +26,7 @@
 - 默认快捷键为历史 `Control + V`，收藏 `Control + B`。
 - 快捷键打开主菜单时，面板应贴近当前鼠标位置；如果未来能稳定获取输入光标位置，可优先贴近输入光标。
 - 菜单 UI 优化优先处理可读性、点击效率和内容预览尺寸，不优先改动底层数据模型。
-- 历史保存上限继续使用原有偏好设置 `kCPYPrefMaxHistorySizeKey`，不在业务代码里硬编码固定条数。
+- 付费版历史保存上限继续使用原有偏好设置 `kCPYPrefMaxHistorySizeKey`，不另写固定条数。
 - 历史菜单的展示数量和历史保存上限保持同一配置来源，避免出现保存很多但菜单只显示固定数量的隐式规则。
 - 菜单设置页只保留仍影响新主菜单体验的配置；旧文件夹分组、旧 tooltip、小缩略图尺寸、旧菜单图标和隐藏图片开关不作为用户可见设置。
 - 历史默认直接展示在主菜单中，自定义主面板按历史上限扁平展示，不以旧文件夹分组配置作为主路径。
@@ -52,11 +52,15 @@
 
 ## 发行
 
-- CopyUp 的正式 bundle id 使用 `tech.beisi.copyup`，Debug 使用 `tech.beisi.copyup.debug`。
+- CopyUp 发行两个版本：官网免费版和 Mac App Store 付费完整版。两个版本不共享购买状态，不迁移数据，也不做跨渠道解锁。
+- 官网版免费，并把剪贴板历史的保存和展示上限固定为 5 条；收藏数量不另设免费限制。官网版不提供购买、许可密钥或付费解锁。
+- 付费只通过购买 Mac App Store 版完成。App Store 版不提供外部支付、许可密钥，也不引导用户到官网购买。
+- 官网版可以引导用户到 Mac App Store。
+- 两个版本使用不同的 bundle id。官网版使用 `tech.beisi.copyup`，Debug 使用 `tech.beisi.copyup.debug`。
 - 官网和更新相关域名使用 `copyup.beisi.tech`。
-- 官网分发使用 Developer ID 签名和 notarization，避免 Apple Silicon 用户遇到 Rosetta 或 Gatekeeper 阻断。
-- Apple Silicon 是必须支持的发行架构；如继续支持 Intel Mac，优先产出 Universal app。
-- Sparkle 只服务官网分发渠道；如果未来只走 Mac App Store，应重新评估是否移除 Sparkle。
+- 官网版使用 Developer ID 签名、notarization 和 Sparkle。Sparkle 不进入 App Store 版，App Store 版只通过 Mac App Store 更新。
+- App Store 版必须在沙盒内保持剪贴板记录和辅助功能粘贴可用。
+- CopyUp 只发行 Apple Silicon 版本，不构建也不分发 Intel 或 Universal 二进制。
 
 ## 第三方服务
 
