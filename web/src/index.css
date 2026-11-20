@@ -1,0 +1,9 @@
+@import "@fontsource-variable/outfit";
+@import "@fontsource/dm-mono";
+@import "./styles/globals.css";
+
+body {
+  font-family:
+    "Outfit Variable", "Outfit", "PingFang SC", "Hiragino Sans GB",
+    "Noto Sans SC", "Microsoft YaHei", sans-serif;
+}
