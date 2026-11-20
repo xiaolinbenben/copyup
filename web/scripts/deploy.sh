@@ -23,6 +23,16 @@ if [[ ! -f dist/index.html ]]; then
   exit 1
 fi
 
+package_dir="$(cd "$root/.." && pwd)/.build/dist"
+latest="$(find "$package_dir" -maxdepth 1 -type f -name 'CopyUp-*-arm64.dmg' -print0 | xargs -0 stat -f '%m %N' | sort -nr | head -n 1 | cut -d' ' -f2-)"
+if [[ -z "$latest" || ! -f "$latest" ]]; then
+  echo "找不到官网安装包：$package_dir/CopyUp-*-arm64.dmg" >&2
+  exit 1
+fi
+mkdir -p dist/download
+cp "$latest" dist/download/CopyUp.dmg
+echo "安装包: $(basename "$latest")"
+
 echo "确认服务器目录"
 "${ssh_cmd[@]}" "$host" "test \"\$(readlink -f '$dest')\" = '/opt/1panel/www/sites/copyup.beisi.tech/index'"
 
@@ -44,10 +54,17 @@ if [[ "$status" != "200" ]]; then
   exit 1
 fi
 
-if ! grep -q "适用于 Mac 的简单剪切板" "$body_file"; then
-  echo "线上页面已打开，但内容不是 CopyUp 官网: $site_url" >&2
-  exit 1
-fi
+phrases=(
+  "简单优雅的剪切板工具"
+  "官网版免费，保存 10 条历史和 5 条收藏。"
+  "剪切板内容均本地处理，不上传云端。"
+)
+for phrase in "${phrases[@]}"; do
+  if ! grep -q "$phrase" "$body_file"; then
+    echo "线上页面缺少：$phrase" >&2
+    exit 1
+  fi
+done
 
 asset="$(sed -nE 's/.*href="\.\/(assets\/[^"]+\.css)".*/\1/p' "$body_file" | head -n 1)"
 if [[ -z "$asset" ]]; then
@@ -58,6 +75,14 @@ fi
 asset_status="$(curl -sS --max-time 20 -o /dev/null -w '%{http_code}' "${site_url}${asset}")"
 if [[ "$asset_status" != "200" ]]; then
   echo "样式文件访问失败: ${site_url}${asset} 返回 HTTP $asset_status" >&2
+  exit 1
+fi
+
+download_result="$(curl -sS --max-time 60 -o /dev/null -w '%{http_code} %{size_download}' "${site_url}download/CopyUp.dmg")"
+download_status="${download_result%% *}"
+download_size="${download_result##* }"
+if [[ "$download_status" != "200" || "$download_size" -lt 1000000 ]]; then
+  echo "安装包访问失败: ${site_url}download/CopyUp.dmg 返回 HTTP $download_status，大小 $download_size" >&2
   exit 1
 fi
 

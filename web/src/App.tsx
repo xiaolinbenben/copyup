@@ -24,9 +24,12 @@ import { Sticker } from "@/components/ui/sticker"
 import {
   appStoreUrl,
   githubUrl,
+  downloadPath,
   privacyPolicyUrl,
   sourceLicenseUrl,
 } from "@/site"
+
+const downloadUrl = `${import.meta.env.BASE_URL}${downloadPath}`
 
 const features = [
   {
@@ -47,7 +50,7 @@ const features = [
   },
   {
     title: "内容留在这台 Mac",
-    body: "剪贴板和收藏存在本地。CopyUp 不会把复制的文字或图片上传。",
+    body: "复制的文字、图片和收藏都在这台 Mac 上处理，不会上传到云端。",
   },
   {
     title: "只做 Apple Silicon",
@@ -84,13 +87,13 @@ const questions = [
     id: "store",
     question: "现在能下载吗？",
     answer:
-      "还不能。Mac App Store 还没有上架。上架之后，页面上的 App Store 按钮会指向商店页面。",
+      "官网版现在可以免费下载。Mac App Store 还没有上架；上架之后，商店版的功能更全。",
   },
   {
     id: "price",
-    question: "要钱吗？",
+    question: "官网版和 App Store 版有什么不同？",
     answer:
-      "完整版通过 Mac App Store 提供，价格以上架页面为准。这个网站不收款，也没有许可密钥。",
+      "官网版免费，保存 10 条历史和 5 条收藏。App Store 版功能更全，历史和收藏都不限制。这个网站不收款。",
   },
   {
     id: "mac",
@@ -102,7 +105,7 @@ const questions = [
     id: "privacy",
     question: "复制的内容会上传吗？",
     answer:
-      "不会。历史和收藏存在这台 Mac 上。CopyUp 会检查更新，分析和崩溃报告默认打开，可以在设置里关闭。本地记录本身没有加密，密码管理器这类应用建议排除在记录之外。",
+      "不会。剪切板内容都在本地处理，不上传到云端。CopyUp 会检查更新，分析和崩溃报告默认打开，可以在设置里关闭。本地记录本身没有加密，密码管理器这类应用建议排除在记录之外。",
   },
   {
     id: "shortcut",
@@ -111,16 +114,31 @@ const questions = [
   },
 ]
 
-function AppStoreLink({
+function DownloadLink({
   size = "lg",
 }: {
   size?: "sm" | "default" | "lg" | "xl"
+}) {
+  return (
+    <Button asChild size={size}>
+      <a href={downloadUrl}>免费下载</a>
+    </Button>
+  )
+}
+
+function AppStoreLink({
+  size = "lg",
+  variant = "outline",
+}: {
+  size?: "sm" | "default" | "lg" | "xl"
+  variant?: "default" | "outline"
 }) {
   if (!appStoreUrl) {
     return (
       <Button
         type="button"
         size={size}
+        variant={variant}
         disabled
         className="disabled:opacity-100"
         title="Mac App Store 尚未上架"
@@ -131,9 +149,9 @@ function AppStoreLink({
   }
 
   return (
-    <Button asChild size={size}>
+    <Button asChild size={size} variant={variant}>
       <a href={appStoreUrl} target="_blank" rel="noreferrer">
-        在 App Store 获取
+        App Store 版
       </a>
     </Button>
   )
@@ -163,9 +181,9 @@ function App() {
             <img
               src={`${import.meta.env.BASE_URL}favicon.png`}
               alt=""
-              width={32}
-              height={32}
-              className="size-8 border-3 border-foreground"
+              width={48}
+              height={48}
+              className="size-12"
             />
             CopyUp
           </a>
@@ -175,38 +193,42 @@ function App() {
           >
             <a href="#features">功能</a>
             <a href="#use">怎么用</a>
+            <a href="#editions">版本</a>
             <a href="#faq">问题</a>
-            <a href={privacyPolicyUrl}>隐私</a>
+            <a href="#privacy">隐私</a>
           </nav>
-          <AppStoreLink size="sm" />
+          <DownloadLink size="sm" />
         </div>
       </header>
 
       <main id="content">
         <section id="top" className="border-b-3 border-foreground">
-          <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 py-16 lg:grid-cols-[1.1fr_0.9fr] lg:py-24">
+          <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 pt-12 pb-16 lg:grid-cols-[1.1fr_0.9fr] lg:pt-20 lg:pb-24">
             <div>
               <Sticker
                 variant="primary"
                 rotation="slight"
                 size="lg"
                 aria-hidden="true"
+                className="normal-case"
               >
-                Mac 剪切板
+                适用于 Mac
               </Sticker>
               <h1 className="mt-6 max-w-3xl text-5xl leading-none font-black tracking-tight sm:text-7xl">
-                适用于 Mac 的简单剪切板。
+                简单优雅的剪切板工具
               </h1>
               <p className="mt-6 max-w-xl text-lg leading-relaxed font-medium">
                 Windows 里按 Win + V，就能翻刚才复制的内容。CopyUp 把这件事放进
                 Mac 菜单栏：历史、收藏、粘贴，都在一个面板里。
               </p>
               <div className="mt-8 flex flex-wrap items-center gap-3">
+                <DownloadLink size="xl" />
                 <AppStoreLink size="xl" />
-                <Button asChild variant="outline" size="xl">
-                  <a href="#features">先看它做什么</a>
-                </Button>
               </div>
+              <p className="mt-4 max-w-xl font-medium">
+                官网版免费，保存 10 条历史和 5 条收藏。App Store
+                版功能更全，历史和收藏都不限制。
+              </p>
               <ul className="mt-8 flex flex-wrap gap-2">
                 <li>
                   <Badge variant="secondary">Apple Silicon</Badge>
@@ -362,6 +384,47 @@ function App() {
           </div>
         </section>
 
+        <section id="editions" className="mx-auto max-w-6xl px-4 py-16">
+          <h2 className="text-4xl font-black tracking-tight">两个版本。</h2>
+          <div className="mt-8 grid gap-4 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="normal-case">官网版 · 免费</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="font-medium">保存 10 条历史，5 条收藏。</p>
+                <DownloadLink />
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle className="normal-case">
+                  App Store 版 · 功能更全
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="font-medium">历史和收藏都不限制。</p>
+                <AppStoreLink />
+              </CardContent>
+            </Card>
+          </div>
+        </section>
+
+        <section
+          id="privacy"
+          className="border-y-3 border-foreground bg-secondary"
+        >
+          <div className="mx-auto max-w-6xl px-4 py-16">
+            <h2 className="max-w-3xl text-4xl font-black tracking-tight">
+              剪切板内容均本地处理，不上传云端。
+            </h2>
+            <p className="mt-4 max-w-2xl text-lg font-medium">
+              你复制的文字、图片和收藏只留在这台 Mac 上。CopyUp
+              不会把这些内容发送到服务器或云端。
+            </p>
+          </div>
+        </section>
+
         <section id="faq" className="mx-auto max-w-3xl px-4 py-16">
           <h2 className="text-4xl font-black tracking-tight">常见问题</h2>
           <Accordion type="single" collapsible className="mt-8">
@@ -381,12 +444,16 @@ function App() {
         <section className="border-y-3 border-foreground bg-primary">
           <div className="mx-auto flex max-w-6xl flex-col items-start gap-6 px-4 py-16">
             <h2 className="max-w-2xl text-4xl font-black tracking-tight sm:text-5xl">
-              商店还没开门。入口先留在这里。
+              先下载免费的官网版。
             </h2>
             <p className="max-w-xl text-lg font-bold">
-              CopyUp 上架 Mac App Store 之后，用同一个按钮进入商店页面。
+              官网版现在就能安装。App Store
+              版上架后功能更全，历史和收藏都不限制。
             </p>
-            <AppStoreLink size="xl" />
+            <div className="flex flex-wrap gap-3">
+              <DownloadLink size="xl" />
+              <AppStoreLink size="xl" />
+            </div>
           </div>
         </section>
       </main>

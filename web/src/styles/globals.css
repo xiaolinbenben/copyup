@@ -683,22 +683,18 @@ body {
 @keyframes accordion-down {
   from {
     height: 0;
-    opacity: 0;
   }
   to {
     height: var(--radix-accordion-content-height);
-    opacity: 1;
   }
 }
 
 @keyframes accordion-up {
   from {
     height: var(--radix-accordion-content-height);
-    opacity: 1;
   }
   to {
     height: 0;
-    opacity: 0;
   }
 }
 
@@ -823,11 +819,11 @@ body {
 
 /* Animation Classes */
 .animate-accordion-down {
-  animation: accordion-down 200ms var(--ease-out);
+  animation: accordion-down 200ms var(--ease-out) both;
 }
 
 .animate-accordion-up {
-  animation: accordion-up 200ms var(--ease-out);
+  animation: accordion-up 200ms var(--ease-out) both;
 }
 
 .animate-collapsible-down {
@@ -941,16 +937,6 @@ body {
   to { opacity: 0; }
 }
 
-@keyframes zoom-in {
-  from { transform: scale(0.95); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
-}
-
-@keyframes zoom-out {
-  from { transform: scale(1); opacity: 1; }
-  to { transform: scale(0.95); opacity: 0; }
-}
-
 @keyframes slide-in-from-top {
   from { transform: translateY(-4px); }
   to { transform: translateY(0); }
@@ -969,15 +955,6 @@ body {
 @keyframes slide-in-from-right {
   from { transform: translateX(4px); }
   to { transform: translateX(0); }
-}
-
-/* Radix UI animation states */
-[data-state="open"] {
-  animation: zoom-in 150ms var(--ease-out);
-}
-
-[data-state="closed"] {
-  animation: zoom-out 100ms var(--ease-in);
 }
 
 /* Tooltip specific animations */

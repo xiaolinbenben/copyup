@@ -8,3 +8,5 @@ export const sourceLicenseUrl =
 
 export const privacyPolicyUrl =
   "https://github.com/xiaolinbenben/copyup/blob/main/PRIVACY.md"
+
+export const downloadPath = "download/CopyUp.dmg"
