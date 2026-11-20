@@ -167,7 +167,7 @@ extension CPYSnippetsEditorWindowController {
                     let title = folderElement[Constants.Xml.titleElement].value ?? "untitled folder"
                     let snippets = folderElement[Constants.Xml.snippetsElement][Constants.Xml.snippetElement]
                         .all?
-                        .map { (title: $0[Constants.Xml.titleElement].value ?? "untitled snippet", content: $0[Constants.Xml.contentElement].value ?? "") } ?? []
+                        .map { (title: $0[Constants.Xml.titleElement].value ?? "untitled favorite", content: $0[Constants.Xml.contentElement].value ?? "") } ?? []
                     return (title: title, snippets: snippets)
                 }
             guard let folderDetails = snippetRepository.insertFolders(folders) else {
@@ -205,7 +205,7 @@ extension CPYSnippetsEditorWindowController {
         panel.allowedFileTypes = [Constants.Xml.fileType]
         panel.allowsOtherFileTypes = false
         panel.directoryURL = URL(fileURLWithPath: NSHomeDirectory())
-        panel.nameFieldStringValue = "snippets"
+        panel.nameFieldStringValue = "favorites"
         let returnCode = panel.runModal()
 
         if returnCode != NSApplication.ModalResponse.OK { return }

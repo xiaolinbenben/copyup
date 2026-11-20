@@ -1,0 +1,489 @@
+:where(:root) {
+  /* Easing — stepped & hard, not smooth. Brutalism's soul. */
+  --bk-ease-step:    steps(4, end);
+  --bk-ease-step-2:  steps(2, end);
+  --bk-ease-snap:    cubic-bezier(0.22, 1, 0.3, 1.12);
+  --bk-ease-stamp:   cubic-bezier(0.7, 0, 0.84, 0);
+  --bk-ease-rubber:  cubic-bezier(0.34, 1.56, 0.64, 1);
+  --bk-ease-linear:  linear;
+
+  /* Durations */
+  --bk-dur-instant: 80ms;
+  --bk-dur-snap:    150ms;
+  --bk-dur-quick:   240ms;
+  --bk-dur-base:    400ms;
+  --bk-dur-slow:    700ms;
+
+  /* Distances */
+  --bk-shadow-offset:       4px;
+  --bk-shadow-offset-press: 0px;
+  --bk-translate-press:     2px;
+  --bk-reveal-offset:       16px;
+
+}
+
+/* ──────────────────────────────────────────────────────
+   L1 — Keyframes (bk-* namespaced)
+   ────────────────────────────────────────────────────── */
+
+@keyframes bk-stamp-in {
+  0%   { opacity: 0; transform: scale(0.6) rotate(-4deg); }
+  60%  { opacity: 1; transform: scale(1.04) rotate(0.5deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0); }
+}
+@keyframes bk-press-shadow {
+  0%   { transform: translate(var(--bk-shadow-offset), var(--bk-shadow-offset)); }
+  100% { transform: translate(var(--bk-shadow-offset-press), var(--bk-shadow-offset-press)); }
+}
+@keyframes bk-reveal-up {
+  from { opacity: 0; transform: translateY(var(--bk-reveal-offset)); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes bk-reveal-down {
+  from { opacity: 0; transform: translateY(calc(var(--bk-reveal-offset) * -1)); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes bk-reveal-left {
+  from { opacity: 0; transform: translateX(var(--bk-reveal-offset)); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes bk-reveal-right {
+  from { opacity: 0; transform: translateX(calc(var(--bk-reveal-offset) * -1)); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes bk-slide-hard-x {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+@keyframes bk-slide-hard-y {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+@keyframes bk-shake-x {
+  0%, 100% { transform: translateX(0); }
+  20%      { transform: translateX(-6px); }
+  40%      { transform: translateX(6px); }
+  60%      { transform: translateX(-4px); }
+  80%      { transform: translateX(4px); }
+}
+@keyframes bk-pulse-shadow {
+  0%, 100% { transform: translate(var(--bk-shadow-offset), var(--bk-shadow-offset)); }
+  50%      { transform: translate(calc(var(--bk-shadow-offset) + 2px), calc(var(--bk-shadow-offset) + 2px)); }
+}
+
+/* ──────────────────────────────────────────────────────
+   L2 — Recipes
+   ────────────────────────────────────────────────────── */
+
+/* 1. PRESS — hard offset-shadow choreography on the snap curve. Mobile-safe.
+   Animates transform + box-shadow (not a negative-z pseudo) so it composes
+   correctly with a background colour: hover lifts and grows the shadow, active
+   presses into the page and collapses it. */
+.bk-press {
+  box-shadow: var(--bk-shadow-offset) var(--bk-shadow-offset) 0 hsl(var(--shadow-color, 240 10% 10%));
+  transition: transform var(--bk-dur-snap) var(--bk-ease-snap),
+              box-shadow var(--bk-dur-snap) var(--bk-ease-snap);
+}
+.bk-press:hover {
+  transform: translate(calc(var(--bk-translate-press) * -1), calc(var(--bk-translate-press) * -1));
+  box-shadow: calc(var(--bk-shadow-offset) + var(--bk-translate-press)) calc(var(--bk-shadow-offset) + var(--bk-translate-press)) 0 hsl(var(--shadow-color, 240 10% 10%));
+}
+.bk-press:active {
+  transform: translate(var(--bk-shadow-offset), var(--bk-shadow-offset));
+  box-shadow: var(--bk-shadow-offset-press) var(--bk-shadow-offset-press) 0 hsl(var(--shadow-color, 240 10% 10%));
+  transition-duration: var(--bk-dur-instant);
+}
+@media (hover: none) {
+  .bk-press {
+    transition-duration: var(--bk-dur-instant);
+  }
+}
+
+/* 2. STAMP-IN — hard entrance */
+.bk-stamp-in        { animation: bk-stamp-in var(--bk-dur-base) var(--bk-ease-snap) both; }
+.bk-stamp-in-quick  { animation-duration: var(--bk-dur-quick); }
+.bk-stamp-in-slow   { animation-duration: var(--bk-dur-slow); }
+
+/* 3. SHAKE-X — error state */
+.bk-shake-x { animation: bk-shake-x var(--bk-dur-quick) var(--bk-ease-step-2); }
+
+/* 4. REVEAL — scroll-triggered (paired with L3 IntersectionObserver) */
+.bk-reveal { opacity: 0; }
+.bk-reveal-in              { animation: bk-reveal-up var(--bk-dur-quick) var(--bk-ease-snap) both; }
+.bk-reveal-up.bk-reveal-in    { animation-name: bk-reveal-up; }
+.bk-reveal-down.bk-reveal-in  { animation-name: bk-reveal-down; }
+.bk-reveal-left.bk-reveal-in  { animation-name: bk-reveal-left; }
+.bk-reveal-right.bk-reveal-in { animation-name: bk-reveal-right; }
+
+/* 5. SLIDE-HARD — stepped slide for drawers/sheets/tabs */
+.bk-slide-hard-x { animation: bk-slide-hard-x var(--bk-dur-quick) var(--bk-ease-step) both; }
+.bk-slide-hard-y { animation: bk-slide-hard-y var(--bk-dur-quick) var(--bk-ease-step) both; }
+
+/* 6. PULSE-SHADOW — attention/loading */
+.bk-pulse-shadow { position: relative; }
+.bk-pulse-shadow::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: hsl(var(--shadow-color, 240 10% 10%));
+  transform: translate(var(--bk-shadow-offset), var(--bk-shadow-offset));
+  animation: bk-pulse-shadow 1.6s var(--bk-ease-snap) infinite;
+  pointer-events: none;
+}
+
+/* ──────────────────────────────────────────────────────
+   A11y — Universal reduced-motion guard
+   ────────────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  [class*="bk-press"],
+  [class*="bk-stamp-in"],
+  [class*="bk-shake"],
+  [class*="bk-reveal"],
+  [class*="bk-slide-hard"],
+  [class*="bk-pulse-shadow"] {
+    animation: none !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ══════════════════════════════════════════════════════
+   BoldKit Motion System v3.5 — Part 2
+   Stepped shape presets · brutalist loading states ·
+   page-transition recipes.
+   Source of truth: registry/default/styles/motion.css
+   ══════════════════════════════════════════════════════ */
+
+/* ──────────────────────────────────────────────────────
+   v3.5 — Keyframes
+   ────────────────────────────────────────────────────── */
+
+/* Shape presets */
+@keyframes bk-spin-step {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+@keyframes bk-pulse-hard {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.14); }
+}
+@keyframes bk-marquee-stamp {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-100%); }
+}
+
+/* Loading states */
+@keyframes bk-skeleton-stamp {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.35; }
+}
+@keyframes bk-skeleton-blocks {
+  from { background-position: 0 0; }
+  to   { background-position: var(--bk-skeleton-cell) 0; }
+}
+@keyframes bk-skeleton-scan {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(100%); }
+}
+@keyframes bk-progress-marquee {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(400%); }
+}
+
+/* Page transitions */
+@keyframes bk-vt-wipe-in {
+  from { clip-path: inset(0 100% 0 0); }
+  to   { clip-path: inset(0 0 0 0); }
+}
+@keyframes bk-vt-wipe-out {
+  from { clip-path: inset(0 0 0 0); }
+  to   { clip-path: inset(0 0 0 100%); }
+}
+@keyframes bk-vt-block-in {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+@keyframes bk-vt-block-out {
+  from { transform: translateY(0); }
+  to   { transform: translateY(-100%); }
+}
+
+/* ──────────────────────────────────────────────────────
+   v3.5 — Shape animation presets (stepped)
+   Extends the .shape-animate-* family with hard, non-eased
+   motion. Consumed by the `animation` prop on all shapes.
+   ────────────────────────────────────────────────────── */
+
+.shape-animate-spin-step        { animation: bk-spin-step 2s    steps(8, end)  infinite; }
+.shape-animate-spin-step-slow   { animation: bk-spin-step 4s    steps(8, end)  infinite; }
+.shape-animate-spin-step-fast   { animation: bk-spin-step 0.9s  steps(8, end)  infinite; }
+
+.shape-animate-pulse-hard       { animation: bk-pulse-hard 1s   steps(2, end)  infinite; }
+.shape-animate-pulse-hard-slow  { animation: bk-pulse-hard 1.8s steps(2, end)  infinite; }
+.shape-animate-pulse-hard-fast  { animation: bk-pulse-hard 0.5s steps(2, end)  infinite; }
+
+.shape-animate-marquee-stamp      { animation: bk-marquee-stamp 3s   steps(12, end) infinite; }
+.shape-animate-marquee-stamp-slow { animation: bk-marquee-stamp 6s   steps(12, end) infinite; }
+.shape-animate-marquee-stamp-fast { animation: bk-marquee-stamp 1.5s steps(12, end) infinite; }
+
+/* ──────────────────────────────────────────────────────
+   v3.5 — Brutalist loading states
+   ────────────────────────────────────────────────────── */
+
+/* SKELETON — stamp: hard on/off, no interpolated fade. */
+.bk-skeleton-stamp {
+  animation: bk-skeleton-stamp var(--bk-dur-slow) var(--bk-ease-step-2) infinite;
+}
+
+/* SKELETON — blocks: marching cells on a stepped loop. */
+.bk-skeleton-blocks {
+  --bk-skeleton-cell: 16px;
+  background-image: repeating-linear-gradient(
+    90deg,
+    hsl(var(--foreground, 240 10% 10%) / 0.16) 0,
+    hsl(var(--foreground, 240 10% 10%) / 0.16) calc(var(--bk-skeleton-cell) / 2),
+    transparent calc(var(--bk-skeleton-cell) / 2),
+    transparent var(--bk-skeleton-cell)
+  );
+  background-size: var(--bk-skeleton-cell) 100%;
+  animation: bk-skeleton-blocks 0.8s steps(4, end) infinite;
+}
+
+/* SKELETON — scanline: a hard bar sweeping the block. */
+.bk-skeleton-scan {
+  position: relative;
+  overflow: hidden;
+}
+.bk-skeleton-scan::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  width: 40%;
+  background: hsl(var(--foreground, 240 10% 10%) / 0.18);
+  animation: bk-skeleton-scan 1.1s var(--bk-ease-step) infinite;
+  pointer-events: none;
+}
+
+/* PROGRESS — stepped: the indicator snaps in discrete notches. */
+.bk-progress-stepped {
+  transition-timing-function: steps(10, end) !important;
+}
+
+/* PROGRESS — marquee: indeterminate travelling block. */
+.bk-progress-marquee {
+  width: 25% !important;
+  animation: bk-progress-marquee 1.4s var(--bk-ease-step) infinite;
+}
+
+/* ──────────────────────────────────────────────────────
+   v3.5 — Page transition recipes (View Transitions API)
+   Opt in per navigation by passing the recipe name to startViewTransition()
+   from @boldkit/motion-core — it applies <html data-bk-transition> for that
+   navigation only and restores the previous value when the transition ends:
+     startViewTransition(() => navigate('/next'), 'hard-wipe')
+   ────────────────────────────────────────────────────── */
+
+/* HARD WIPE — new view wipes across in stepped notches. */
+html[data-bk-transition='hard-wipe']::view-transition-old(root) {
+  animation: bk-vt-wipe-out var(--bk-dur-base) var(--bk-ease-step) both;
+  z-index: 0;
+}
+html[data-bk-transition='hard-wipe']::view-transition-new(root) {
+  animation: bk-vt-wipe-in var(--bk-dur-base) var(--bk-ease-step) both;
+  z-index: 1;
+}
+
+/* COLOR BLOCK — outgoing view lifts away, incoming slams up from below. */
+html[data-bk-transition='color-block']::view-transition-old(root) {
+  animation: bk-vt-block-out var(--bk-dur-quick) var(--bk-ease-stamp) both;
+  z-index: 0;
+}
+html[data-bk-transition='color-block']::view-transition-new(root) {
+  animation: bk-vt-block-in var(--bk-dur-base) var(--bk-ease-snap) both;
+  z-index: 1;
+}
+
+/* STAMP — incoming view stamps down over the old one. */
+html[data-bk-transition='stamp']::view-transition-old(root) {
+  animation: none;
+  z-index: 0;
+}
+html[data-bk-transition='stamp']::view-transition-new(root) {
+  animation: bk-stamp-in var(--bk-dur-base) var(--bk-ease-snap) both;
+  z-index: 1;
+}
+
+/* The same recipes per element, for React 19.3 <ViewTransition>:
+     <ViewTransition enter="bk-stamp" exit="bk-hard-wipe">…</ViewTransition>
+   React tags the snapshot with view-transition-class, which these match. */
+::view-transition-old(.bk-hard-wipe) {
+  animation: bk-vt-wipe-out var(--bk-dur-base) var(--bk-ease-step) both;
+}
+::view-transition-new(.bk-hard-wipe) {
+  animation: bk-vt-wipe-in var(--bk-dur-base) var(--bk-ease-step) both;
+}
+::view-transition-old(.bk-color-block) {
+  animation: bk-vt-block-out var(--bk-dur-quick) var(--bk-ease-stamp) both;
+}
+::view-transition-new(.bk-color-block) {
+  animation: bk-vt-block-in var(--bk-dur-base) var(--bk-ease-snap) both;
+}
+::view-transition-old(.bk-stamp) {
+  animation: none;
+}
+::view-transition-new(.bk-stamp) {
+  animation: bk-stamp-in var(--bk-dur-base) var(--bk-ease-snap) both;
+}
+
+/* ──────────────────────────────────────────────────────
+   v3.5 — A11y guard
+   ────────────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  [class*='shape-animate-spin-step'],
+  [class*='shape-animate-pulse-hard'],
+  [class*='shape-animate-marquee-stamp'],
+  [class*='bk-skeleton-'],
+  [class*='bk-skeleton-']::after,
+  [class*='bk-progress-'] {
+    animation: none !important;
+    transition-duration: 0.01ms !important;
+  }
+  /* Keep an indeterminate bar legible when its motion is removed. */
+  .bk-progress-marquee {
+    width: 100% !important;
+    opacity: 0.6;
+  }
+  html[data-bk-transition]::view-transition-old(root),
+  html[data-bk-transition]::view-transition-new(root) {
+    animation: none !important;
+  }
+  ::view-transition-old(.bk-hard-wipe),
+  ::view-transition-new(.bk-hard-wipe),
+  ::view-transition-old(.bk-color-block),
+  ::view-transition-new(.bk-color-block),
+  ::view-transition-new(.bk-stamp) {
+    animation: none !important;
+  }
+}
+
+/* ──────────────────────────────────────────────────────
+   v3.6 — Chat kit (MessageScroller fade, Marker shimmer).
+   Also in the v3.6 block of each globals.css.
+   ────────────────────────────────────────────────────── */
+
+/* Chat kit — scroll-aware edge fades. Static fallback: both edges always faded. */
+@property --bk-fade-top {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}
+@property --bk-fade-bottom {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}
+
+.bk-scroll-fade {
+  --bk-fade-size: 2rem;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 var(--bk-fade-size), #000 calc(100% - var(--bk-fade-size)), transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 var(--bk-fade-size), #000 calc(100% - var(--bk-fade-size)), transparent 100%);
+}
+
+/* Where scroll-driven animations exist, fade only the edge that has more
+   content past it. A box that can't scroll has an inactive timeline, so the
+   registered initial values (0px) apply and nothing fades. */
+@supports (animation-timeline: scroll()) {
+  .bk-scroll-fade {
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 var(--bk-fade-top), #000 calc(100% - var(--bk-fade-bottom)), transparent 100%);
+    mask-image: linear-gradient(to bottom, transparent 0, #000 var(--bk-fade-top), #000 calc(100% - var(--bk-fade-bottom)), transparent 100%);
+    animation: bk-scroll-fade linear both;
+    animation-timeline: scroll(self); /* must follow the shorthand */
+  }
+}
+
+@keyframes bk-scroll-fade {
+  0%   { --bk-fade-top: 0px; --bk-fade-bottom: var(--bk-fade-size); }
+  8%   { --bk-fade-top: var(--bk-fade-size); }
+  92%  { --bk-fade-bottom: var(--bk-fade-size); }
+  100% { --bk-fade-top: var(--bk-fade-size); --bk-fade-bottom: 0px; }
+}
+
+/* Chat kit — animated text shimmer for live status labels. */
+.bk-shimmer {
+  --bk-shimmer-base: hsl(var(--muted-foreground));
+  --bk-shimmer-highlight: hsl(var(--foreground));
+  color: var(--bk-shimmer-base);
+  background-image: linear-gradient(90deg, var(--bk-shimmer-base) 0%, var(--bk-shimmer-base) 42%, var(--bk-shimmer-highlight) 50%, var(--bk-shimmer-base) 58%, var(--bk-shimmer-base) 100%);
+  background-size: 300% 100%;
+  background-repeat: no-repeat;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: bk-shimmer 1.8s linear infinite;
+}
+
+@keyframes bk-shimmer {
+  from { background-position: 100% 0; }
+  to   { background-position: 0% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bk-shimmer { animation: none; background: none; -webkit-text-fill-color: currentColor; }
+}
+@media (forced-colors: active) {
+  .bk-shimmer { background: none; -webkit-text-fill-color: currentColor; }
+}
+
+/* Chat kit — Bubble `typing` dots and `streaming` caret. Stepped, not eased:
+   the dots hop and the caret blinks in hard frames. */
+.bk-typing {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 1.5em;
+}
+.bk-typing > span {
+  width: 8px;
+  height: 8px;
+  background-color: currentColor;
+  opacity: 0.35;
+  animation: bk-typing 1.2s steps(1, end) infinite;
+}
+.bk-typing > span:nth-child(2) { animation-delay: 0.2s; }
+.bk-typing > span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes bk-typing {
+  0%, 50%, 100% { opacity: 0.35; transform: translateY(0); }
+  17%           { opacity: 1; transform: translateY(-4px); }
+}
+
+/* Caret after the last line of text: on the content itself when it is bare
+   text, otherwise on its last block (so it doesn't drop to a new line). */
+.bk-stream-caret:not(:has(> *))::after,
+.bk-stream-caret > :last-child::after {
+  content: '';
+  display: inline-block;
+  width: 0.55em;
+  height: 1.1em;
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  background-color: currentColor;
+  animation: bk-caret 1s steps(1, end) infinite;
+}
+
+@keyframes bk-caret {
+  50% { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bk-typing > span { animation: none; opacity: 0.7; }
+  .bk-stream-caret:not(:has(> *))::after,
+  .bk-stream-caret > :last-child::after { animation: none; }
+}
+@media (forced-colors: active) {
+  .bk-typing > span,
+  .bk-stream-caret:not(:has(> *))::after,
+  .bk-stream-caret > :last-child::after { background-color: CanvasText; forced-color-adjust: none; }
+}

@@ -9,7 +9,7 @@
 "Lxb-5c-zOc.title" = "Elimina";
 
 /* Class = "NSWindow"; title = "CopyUp - Snippets Editor"; ObjectID = "QvC-M9-y7g"; */
-"QvC-M9-y7g.title" = "CopyUp - Editor degli Snippet";
+"QvC-M9-y7g.title" = "CopyUp - Favorites Editor";
 
 /* Class = "NSTextFieldCell"; title = "Export"; ObjectID = "Uqj-Zh-vde"; */
 "Uqj-Zh-vde.title" = "Esporta";
@@ -27,10 +27,10 @@
 "rI9-rT-YTs.title" = "Nome della cartella";
 
 /* Class = "NSTextFieldCell"; title = "Share snippets"; ObjectID = "wwo-lh-lMK"; */
-"wwo-lh-lMK.title" = "Condividi Snippet";
+"wwo-lh-lMK.title" = "Share favorites";
 
 /* Class = "NSTextFieldCell"; title = "Add Snippet"; ObjectID = "xPC-Uv-z03"; */
-"xPC-Uv-z03.title" = "Aggiungi Snippet";
+"xPC-Uv-z03.title" = "Add Favorite";
 
 /* Class = "NSTextFieldCell"; title = "Coming Soon"; ObjectID = "yzF-k8-xUT"; */
 "yzF-k8-xUT.title" = "Disponibile a breve";
